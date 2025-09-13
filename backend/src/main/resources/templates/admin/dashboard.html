@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Easy-Q</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- AOS Animation Library -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="/">
+                <i class="fas fa-clock me-2"></i>Easy-Q Admin
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/admin/users">
+                    <i class="fas fa-users me-1"></i>Users
+                </a>
+                <a class="nav-link" href="/admin/services">
+                    <i class="fas fa-cogs me-1"></i>Services
+                </a>
+                <a class="nav-link" href="/admin/appointments">
+                    <i class="fas fa-calendar me-1"></i>Appointments
+                </a>
+                <a class="nav-link" href="/admin/queue">
+                    <i class="fas fa-list-ol me-1"></i>Queue
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="h3 mb-0 text-dark">
+                    <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                </h1>
+                <p class="text-muted">Real-time analytics and system overview</p>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4" th:object="${stats}">
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Total Users
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{totalUsers}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Total Appointments
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{totalAppointments}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="300">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Queue Entries
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{totalQueueEntries}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-list-ol fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="400">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Active Services
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{activeServices}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-cogs fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Stats -->
+        <div class="row mb-4" th:object="${stats}">
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="500">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Today's Appointments
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{todayAppointments}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="600">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Waiting in Queue
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{waitingInQueue}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="700">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Completed Today
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{completedToday}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4" data-aos="fade-up" data-aos-delay="800">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                    Cancelled Today
+                                </div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" th:text="*{cancelledToday}">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <!-- Appointments by Service Chart -->
+            <div class="col-xl-6 col-lg-7 mb-4" data-aos="fade-up" data-aos-delay="900">
+                <div class="card shadow">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Appointments by Service</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-pie pt-4 pb-2">
+                            <canvas id="appointmentsByServiceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Appointments Chart -->
+            <div class="col-xl-6 col-lg-5 mb-4" data-aos="fade-up" data-aos-delay="1000">
+                <div class="card shadow">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">Daily Appointments (Last 7 Days)</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area">
+                            <canvas id="dailyAppointmentsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="row">
+            <!-- Recent Appointments -->
+            <div class="col-lg-6 mb-4" data-aos="fade-up" data-aos-delay="1100">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Recent Appointments</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>Patient</th>
+                                        <th>Service</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody th:if="${stats.recentAppointments != null and !stats.recentAppointments.empty}">
+                                    <tr th:each="appointment : ${stats.recentAppointments}">
+                                        <td th:text="${appointment.userName}">John Doe</td>
+                                        <td th:text="${appointment.serviceName}">General Consultation</td>
+                                        <td th:text="${appointment.date}">2024-01-15</td>
+                                        <td th:text="${appointment.time}">09:00</td>
+                                        <td>
+                                            <span class="badge" th:classappend="${appointment.status == 'SCHEDULED'} ? 'bg-warning' : 
+                                                                              ${appointment.status == 'CONFIRMED'} ? 'bg-info' : 
+                                                                              ${appointment.status == 'COMPLETED'} ? 'bg-success' : 'bg-danger'"
+                                                  th:text="${appointment.status}">SCHEDULED</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tbody th:if="${stats.recentAppointments == null or stats.recentAppointments.empty}">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">No recent appointments</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Queue -->
+            <div class="col-lg-6 mb-4" data-aos="fade-up" data-aos-delay="1200">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Current Queue</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>Queue #</th>
+                                        <th>Patient</th>
+                                        <th>Service</th>
+                                        <th>Status</th>
+                                        <th>Wait Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody th:if="${stats.recentQueueEntries != null and !stats.recentQueueEntries.empty}">
+                                    <tr th:each="entry : ${stats.recentQueueEntries}">
+                                        <td th:text="${entry.queueNumber}">1</td>
+                                        <td th:text="${entry.userName}">John Doe</td>
+                                        <td th:text="${entry.serviceName}">General Consultation</td>
+                                        <td>
+                                            <span class="badge" th:classappend="${entry.status == 'WAITING'} ? 'bg-warning' : 
+                                                                              ${entry.status == 'CALLED'} ? 'bg-info' : 
+                                                                              ${entry.status == 'IN_PROGRESS'} ? 'bg-primary' : 'bg-success'"
+                                                  th:text="${entry.status}">WAITING</span>
+                                        </td>
+                                        <td th:text="${entry.estimatedWaitTime} + ' min'">15 min</td>
+                                    </tr>
+                                </tbody>
+                                <tbody th:if="${stats.recentQueueEntries == null or stats.recentQueueEntries.empty}">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">No one in queue</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- AOS Animation Library -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        // Initialize AOS animations
+        AOS.init({
+            duration: 800,
+            easing: 'ease-in-out',
+            once: true
+        });
+
+        // Chart data from server
+        const appointmentsByServiceData = /*[[${stats.appointmentsByService}]]*/ [];
+        const dailyAppointmentsData = /*[[${stats.dailyAppointments}]]*/ [];
+
+        // Appointments by Service Pie Chart
+        const appointmentsByServiceCtx = document.getElementById('appointmentsByServiceChart').getContext('2d');
+        new Chart(appointmentsByServiceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: appointmentsByServiceData.map(item => item.service),
+                datasets: [{
+                    data: appointmentsByServiceData.map(item => item.count),
+                    backgroundColor: [
+                        '#4e73df',
+                        '#1cc88a',
+                        '#36b9cc',
+                        '#f6c23e',
+                        '#e74a3b'
+                    ],
+                    hoverBackgroundColor: [
+                        '#2e59d9',
+                        '#17a673',
+                        '#2c9faf',
+                        '#dda20a',
+                        '#c0392b'
+                    ]
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Daily Appointments Line Chart
+        const dailyAppointmentsCtx = document.getElementById('dailyAppointmentsChart').getContext('2d');
+        new Chart(dailyAppointmentsCtx, {
+            type: 'line',
+            data: {
+                labels: dailyAppointmentsData.map(item => item.date),
+                datasets: [{
+                    label: 'Appointments',
+                    data: dailyAppointmentsData.map(item => item.count),
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+
+        // Auto-refresh dashboard every 30 seconds
+        setInterval(() => {
+            fetch('/admin/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    // Update stats cards
+                    document.querySelectorAll('.card-body .h5').forEach((element, index) => {
+                        const values = [
+                            data.totalUsers,
+                            data.totalAppointments,
+                            data.totalQueueEntries,
+                            data.activeServices,
+                            data.todayAppointments,
+                            data.waitingInQueue,
+                            data.completedToday,
+                            data.cancelledToday
+                        ];
+                        if (values[index] !== undefined) {
+                            element.textContent = values[index];
+                        }
+                    });
+                })
+                .catch(error => console.error('Error refreshing stats:', error));
+        }, 30000);
+    </script>
+</body>
+</html>
