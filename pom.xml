@@ -11,7 +11,7 @@
     <packaging>jar</packaging>
 
     <name>Easy-Q</name>
-    <description>Digital Queue & Appointment Manager</description>
+    <description>Digital Queue &amp; Appointment Manager</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -66,9 +66,9 @@
 
         <!-- Database -->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.33</version>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- JSON Processing -->
