@@ -8,12 +8,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 @Controller
 @RequestMapping("/queue")
 public class QueueController {
+    private static final Logger log = LoggerFactory.getLogger(QueueController.class);
     
     @Autowired
     private QueueService queueService;
@@ -55,10 +58,11 @@ public class QueueController {
     @ResponseBody
     public ResponseEntity<QueueEntryDTO> joinQueue(@RequestParam Long serviceId) {
         try {
-            Long userId = 4L;
+            Long userId = null; // let service layer resolve/create demo user for local testing
             QueueEntryDTO queueEntry = queueService.joinQueue(userId, serviceId);
             return ResponseEntity.ok(queueEntry);
         } catch (Exception e) {
+            log.error("Failed to join queue for serviceId={}", serviceId, e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -102,6 +106,8 @@ public class QueueController {
         List<QueueEntryDTO> queueEntries = queueService.getQueueEntries(serviceId);
         return ResponseEntity.ok(queueEntries);
     }
+
+    // (Kept minimal; removed extra debug endpoints to keep code simple)
     
     @GetMapping("/api/user-entries")
     @ResponseBody

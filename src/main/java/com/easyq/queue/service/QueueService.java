@@ -36,51 +36,66 @@ public class QueueService {
     public QueueEntryDTO joinQueue(Long userId, Long serviceId) {
         try {
             validateIds(userId, serviceId);
-            Optional<User> userOpt = userRepository.findById(userId);
-            Optional<com.easyq.common.model.Service> serviceOpt = serviceRepository.findById(serviceId);
-            
-            if (userOpt.isEmpty() || serviceOpt.isEmpty()) {
-                throw new IllegalArgumentException("User or service not found");
-            }
-            
-            User user = userOpt.get();
-            com.easyq.common.model.Service service = serviceOpt.get();
-            
-            List<QueueEntry> activeEntries = queueEntryRepository.findActiveQueueEntriesByUser(user);
-            boolean alreadyInQueue = activeEntries.stream()
-                .anyMatch(entry -> entry.getService().getId().equals(serviceId) && 
-                         (entry.getStatus() == QueueEntry.QueueStatus.WAITING || 
-                          entry.getStatus() == QueueEntry.QueueStatus.CALLED));
-            
-            if (alreadyInQueue) {
+
+            User user = resolveOrCreateDemoUser(userId);
+            com.easyq.common.model.Service service = getServiceOrThrow(serviceId);
+
+            // Prevent duplicates only for real users
+            if (userId != null && isAlreadyQueuedForService(user, serviceId)) {
                 throw new IllegalStateException("User is already in queue for this service");
             }
-            
-            Optional<Integer> maxQueueNumber = queueEntryRepository.findMaxQueueNumberByService(serviceId);
-            Integer nextQueueNumber = maxQueueNumber.orElse(0) + 1;
-            
+
+            int nextQueueNumber = queueEntryRepository
+                    .findMaxQueueNumberByService(serviceId)
+                    .orElse(0) + 1;
+
             QueueEntry queueEntry = new QueueEntry();
             queueEntry.setUser(user);
             queueEntry.setService(service);
             queueEntry.setQueueNumber(nextQueueNumber);
             queueEntry.setStatus(QueueEntry.QueueStatus.WAITING);
             queueEntry.setEstimatedWaitTime(calculateEstimatedWaitTime(serviceId));
-            
+
             QueueEntry savedEntry = queueEntryRepository.save(queueEntry);
-            
+
             QueueUpdateDTO update = new QueueUpdateDTO(
-                "JOINED", 
-                enrichQueueEntryDTO(savedEntry), 
+                "JOINED",
+                enrichQueueEntryDTO(savedEntry),
                 user.getFirstName() + " " + user.getLastName() + " joined the queue",
                 serviceId
             );
             messagingTemplate.convertAndSend("/topic/queue", update);
-            
+
             return enrichQueueEntryDTO(savedEntry);
-            
         } catch (Exception e) {
             throw new RuntimeException("Failed to join queue: " + e.getMessage());
         }
+    }
+
+    private User resolveOrCreateDemoUser(Long userId) {
+        if (userId != null) {
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        }
+        // Create a simple unique demo user each time to allow multiple joins in a demo
+        String suffix = String.valueOf(System.currentTimeMillis());
+        String username = "customer_" + suffix;
+        User demo = new User(username, username + "@example.com", "password", "Customer", suffix);
+        demo.setRole(User.Role.CUSTOMER);
+        return userRepository.save(demo);
+    }
+
+    private com.easyq.common.model.Service getServiceOrThrow(Long serviceId) {
+        return serviceRepository.findById(serviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Service not found"));
+    }
+
+    private boolean isAlreadyQueuedForService(User user, Long serviceId) {
+        List<QueueEntry> activeEntries = queueEntryRepository.findActiveQueueEntriesByUser(user);
+        return activeEntries.stream().anyMatch(entry ->
+                entry.getService().getId().equals(serviceId) &&
+                        (entry.getStatus() == QueueEntry.QueueStatus.WAITING ||
+                         entry.getStatus() == QueueEntry.QueueStatus.CALLED));
     }
     
     public QueueEntryDTO callNext(Long serviceId) {
