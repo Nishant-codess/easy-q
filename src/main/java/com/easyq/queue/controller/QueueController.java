@@ -24,6 +24,14 @@ public class QueueController {
     @GetMapping
     public String queuePage(Model model) {
         List<Service> services = serviceRepository.findByIsActive(true);
+        if (services.isEmpty()) {
+            // Seed minimal demo services for queue only (dev convenience)
+            Service s1 = new Service("General Consultation", "", 30, null);
+            Service s2 = new Service("Billing Support", "", 20, null);
+            Service s3 = new Service("Technical Support", "", 25, null);
+            serviceRepository.saveAll(java.util.Arrays.asList(s1, s2, s3));
+            services = serviceRepository.findByIsActive(true);
+        }
         model.addAttribute("services", services);
         return "queue/queue";
     }
