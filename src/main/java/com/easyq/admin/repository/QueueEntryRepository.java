@@ -39,4 +39,10 @@ public interface QueueEntryRepository extends JpaRepository<QueueEntry, Long> {
     List<QueueEntry> findWaitingQueueEntriesByService(@Param("serviceId") Long serviceId);
     
     List<QueueEntry> findByUser(User user);
+    
+    // Get all entries except completed ones
+    List<QueueEntry> findByStatusNot(QueueEntry.QueueStatus status);
+    
+    // Get entries by service ID except completed ones
+    List<QueueEntry> findByServiceIdAndStatusNot(Long serviceId, QueueEntry.QueueStatus status);
 }

@@ -49,19 +49,35 @@ public class QueueService {
                     .findMaxQueueNumberByService(serviceId)
                     .orElse(0) + 1;
 
+            // Check if this is the first person in queue for this service
+            List<QueueEntry> activeEntries = queueEntryRepository.findByServiceIdAndStatusNot(serviceId, QueueEntry.QueueStatus.COMPLETED);
+            boolean isFirstInQueue = activeEntries.isEmpty();
+
             QueueEntry queueEntry = new QueueEntry();
             queueEntry.setUser(user);
             queueEntry.setService(service);
             queueEntry.setQueueNumber(nextQueueNumber);
-            queueEntry.setStatus(QueueEntry.QueueStatus.WAITING);
+            
+            // First person should be IN_PROGRESS, others should be WAITING
+            if (isFirstInQueue) {
+                queueEntry.setStatus(QueueEntry.QueueStatus.IN_PROGRESS);
+                queueEntry.setStartedAt(LocalDateTime.now());
+            } else {
+                queueEntry.setStatus(QueueEntry.QueueStatus.WAITING);
+            }
+            
             queueEntry.setEstimatedWaitTime(calculateEstimatedWaitTime(serviceId));
 
             QueueEntry savedEntry = queueEntryRepository.save(queueEntry);
 
+            String message = isFirstInQueue ? 
+                user.getFirstName() + " " + user.getLastName() + " joined the queue and service started immediately" :
+                user.getFirstName() + " " + user.getLastName() + " joined the queue";
+
             QueueUpdateDTO update = new QueueUpdateDTO(
-                "JOINED",
+                isFirstInQueue ? "STARTED" : "JOINED",
                 enrichQueueEntryDTO(savedEntry),
-                user.getFirstName() + " " + user.getLastName() + " joined the queue",
+                message,
                 serviceId
             );
             messagingTemplate.convertAndSend("/topic/queue", update);
@@ -110,6 +126,8 @@ public class QueueService {
                 .sorted(Comparator.comparing(QueueEntry::getQueueNumber))
                 .findFirst()
                 .orElse(waitingEntries.get(0));
+            
+            // Move from WAITING to CALLED
             nextEntry.setStatus(QueueEntry.QueueStatus.CALLED);
             nextEntry.setCalledAt(LocalDateTime.now());
             
@@ -138,6 +156,13 @@ public class QueueService {
             }
             
             QueueEntry entry = entryOpt.get();
+            
+            // Only allow starting service if status is CALLED or WAITING (for first person)
+            if (entry.getStatus() != QueueEntry.QueueStatus.CALLED && 
+                entry.getStatus() != QueueEntry.QueueStatus.WAITING) {
+                throw new IllegalStateException("Cannot start service for entry with status: " + entry.getStatus());
+            }
+            
             entry.setStatus(QueueEntry.QueueStatus.IN_PROGRESS);
             entry.setStartedAt(LocalDateTime.now());
             
@@ -190,9 +215,11 @@ public class QueueService {
     public List<QueueEntryDTO> getQueueEntries(Long serviceId) {
         List<QueueEntry> entries;
         if (serviceId != null) {
-            entries = queueEntryRepository.findWaitingQueueEntriesByService(serviceId);
+            // Get all entries for a specific service (not just waiting)
+            entries = queueEntryRepository.findByServiceIdAndStatusNot(serviceId, QueueEntry.QueueStatus.COMPLETED);
         } else {
-            entries = queueEntryRepository.findWaitingQueueEntries();
+            // Get all active entries (not completed)
+            entries = queueEntryRepository.findByStatusNot(QueueEntry.QueueStatus.COMPLETED);
         }
         
         return entries.stream()
@@ -256,6 +283,31 @@ public class QueueService {
         dto.setAverageWaitTime(avg);
         dto.setEstimatedWaitTime(avg * peopleAhead);
         return dto;
+    }
+
+    public void removeQueueEntry(Long queueEntryId) {
+        try {
+            Optional<QueueEntry> entryOpt = queueEntryRepository.findById(queueEntryId);
+            if (entryOpt.isEmpty()) {
+                throw new RuntimeException("Queue entry not found");
+            }
+            
+            QueueEntry entry = entryOpt.get();
+            entry.setStatus(QueueEntry.QueueStatus.CANCELLED);
+            queueEntryRepository.save(entry);
+            
+            // Broadcast queue update
+            QueueUpdateDTO update = new QueueUpdateDTO(
+                "REMOVED", 
+                enrichQueueEntryDTO(entry), 
+                "Queue entry removed for queue number " + entry.getQueueNumber(),
+                entry.getService().getId()
+            );
+            messagingTemplate.convertAndSend("/topic/queue", update);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to remove queue entry: " + e.getMessage());
+        }
     }
 
     private void validateIds(Long userId, Long serviceId) {

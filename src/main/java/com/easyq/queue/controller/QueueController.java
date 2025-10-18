@@ -51,7 +51,7 @@ public class QueueController {
     public String queueDisplay(Model model) {
         List<QueueEntryDTO> queueEntries = queueService.getQueueEntries(null);
         model.addAttribute("queueEntries", queueEntries);
-        return "queue/display";
+        return "queue/queue";
     }
     
     @PostMapping("/join")
@@ -116,5 +116,29 @@ public class QueueController {
         Long userId = 4L;
         List<QueueEntryDTO> queueEntries = queueService.getUserQueueEntries(userId);
         return ResponseEntity.ok(queueEntries);
+    }
+    
+    // Admin Queue Management Page
+    @GetMapping("/admin")
+    public String adminQueuePage(Model model) {
+        List<Service> services = serviceRepository.findByIsActive(true);
+        model.addAttribute("services", services);
+        
+        List<QueueEntryDTO> queueEntries = queueService.getQueueEntries(null);
+        model.addAttribute("queueEntries", queueEntries);
+        
+        return "admin/queue-management";
+    }
+    
+    // Remove queue entry
+    @PostMapping("/remove/{id}")
+    @ResponseBody
+    public ResponseEntity<String> removeQueueEntry(@PathVariable Long id) {
+        try {
+            queueService.removeQueueEntry(id);
+            return ResponseEntity.ok("Queue entry removed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
     }
 }
