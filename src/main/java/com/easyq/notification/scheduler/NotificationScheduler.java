@@ -3,7 +3,10 @@ package com.easyq.notification.scheduler;
 import com.easyq.notification.repository.NotificationRepository;
 import com.easyq.notification.service.NotificationService;
 import com.easyq.common.model.Notification;
+import com.easyq.common.model.Appointment;
+import com.easyq.admin.repository.AppointmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +21,12 @@ public class NotificationScheduler {
     
     @Autowired
     private NotificationService notificationService;
+    
+    @Autowired
+    private AppointmentRepository appointmentRepository;
+    
+    @Value("${notification.appointment.reminder-hours:24}")
+    private int reminderHours;
     
     // Run every 5 minutes to process unsent notifications
     @Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
@@ -51,11 +60,40 @@ public class NotificationScheduler {
         try {
             System.out.println("Checking for appointment reminders at " + LocalDateTime.now());
             
-            // TODO: Implement appointment reminder logic
-            // This would typically:
-            // 1. Find appointments scheduled for the next 24 hours
-            // 2. Check if reminders have already been sent
-            // 3. Send reminders for appointments that need them
+            // Find appointments scheduled within the reminder window
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime reminderWindowStart = now.plusHours(reminderHours - 1);
+            LocalDateTime reminderWindowEnd = now.plusHours(reminderHours + 1);
+            
+            // Get all appointments and filter (simplified approach)
+            List<Appointment> allAppointments = appointmentRepository.findAll();
+            List<Appointment> upcomingAppointments = allAppointments.stream()
+                .filter(apt -> apt.getAppointmentDate() != null)
+                .filter(apt -> apt.getAppointmentDate().isAfter(reminderWindowStart.toLocalDate().minusDays(1)))
+                .filter(apt -> apt.getAppointmentDate().isBefore(reminderWindowEnd.toLocalDate().plusDays(1)))
+                .filter(apt -> apt.getStatus() == Appointment.AppointmentStatus.SCHEDULED)
+                .collect(java.util.stream.Collectors.toList());
+            
+            System.out.println("Found " + upcomingAppointments.size() + " appointments in reminder window");
+            
+            for (Appointment appointment : upcomingAppointments) {
+                try {
+                    // Check if reminder already sent (simple check - could be enhanced)
+                    boolean reminderSent = notificationRepository
+                        .findByUserAndTypeAndCreatedAtAfter(
+                            appointment.getUser(),
+                            Notification.NotificationType.APPOINTMENT_REMINDER,
+                            now.minusHours(1)
+                        ).size() > 0;
+                    
+                    if (!reminderSent) {
+                        notificationService.sendAppointmentReminder(appointment);
+                        System.out.println("Sent reminder for appointment ID: " + appointment.getId());
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to send reminder for appointment " + appointment.getId() + ": " + e.getMessage());
+                }
+            }
             
             System.out.println("Appointment reminder check completed");
             
@@ -64,22 +102,47 @@ public class NotificationScheduler {
         }
     }
     
-    // Run every 10 minutes to check for queue updates
-    @Scheduled(fixedRate = 600000) // 10 minutes in milliseconds
+    // Run every 5 minutes to check for queue updates and waiting time reminders
+    @Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
     public void checkQueueUpdates() {
         try {
             System.out.println("Checking for queue updates at " + LocalDateTime.now());
             
-            // TODO: Implement queue update logic
-            // This would typically:
-            // 1. Check for queue entries that have been waiting for a while
-            // 2. Update estimated wait times
-            // 3. Send notifications if wait times have changed significantly
+            // Check for queue entries with 5-minute waiting time
+            checkWaitingTimeReminders();
             
             System.out.println("Queue update check completed");
             
         } catch (Exception e) {
             System.err.println("Error in queue update scheduler: " + e.getMessage());
+        }
+    }
+    
+    private void checkWaitingTimeReminders() {
+        try {
+            // Get all active queue entries
+            List<com.easyq.common.model.QueueEntry> activeQueues = notificationService.getActiveQueueEntries();
+            
+            for (com.easyq.common.model.QueueEntry queueEntry : activeQueues) {
+                // Check if estimated wait time is 5 minutes or less
+                if (queueEntry.getEstimatedWaitTime() != null && queueEntry.getEstimatedWaitTime() <= 5) {
+                    // Check if we haven't already sent a reminder in the last 10 minutes
+                    boolean reminderSent = notificationService.hasRecentReminder(
+                        queueEntry.getUser(), 
+                        com.easyq.common.model.Notification.NotificationType.QUEUE_UPDATE,
+                        LocalDateTime.now().minusMinutes(10)
+                    );
+                    
+                    if (!reminderSent) {
+                        // Send waiting time reminder
+                        notificationService.sendQueueUpdate(queueEntry);
+                        System.out.println("Sent waiting time reminder for queue entry: " + queueEntry.getId());
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error checking waiting time reminders: " + e.getMessage());
         }
     }
 }
