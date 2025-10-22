@@ -29,9 +29,7 @@ public class QueueController {
     }
     
     @GetMapping("/my-queue")
-    public String myQueue(Model model) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+    public String myQueue(@RequestParam Long userId, Model model) {
         List<QueueEntryDTO> queueEntries = queueService.getUserQueueEntries(userId);
         model.addAttribute("queueEntries", queueEntries);
         return "queue/my-queue";
@@ -46,10 +44,8 @@ public class QueueController {
     
     @PostMapping("/join")
     @ResponseBody
-    public ResponseEntity<QueueEntryDTO> joinQueue(@RequestParam Long serviceId) {
+    public ResponseEntity<QueueEntryDTO> joinQueue(@RequestParam Long serviceId, @RequestParam Long userId) {
         try {
-            // For demo purposes, using user ID 4 (customer1)
-            Long userId = 4L;
             QueueEntryDTO queueEntry = queueService.joinQueue(userId, serviceId);
             return ResponseEntity.ok(queueEntry);
         } catch (Exception e) {
@@ -99,9 +95,7 @@ public class QueueController {
     
     @GetMapping("/api/user-entries")
     @ResponseBody
-    public ResponseEntity<List<QueueEntryDTO>> getUserQueueEntries() {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+    public ResponseEntity<List<QueueEntryDTO>> getUserQueueEntries(@RequestParam Long userId) {
         List<QueueEntryDTO> queueEntries = queueService.getUserQueueEntries(userId);
         return ResponseEntity.ok(queueEntries);
     }

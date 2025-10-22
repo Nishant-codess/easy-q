@@ -5,6 +5,7 @@ import com.easyq.booking.dto.BookingResponseDTO;
 import com.easyq.booking.service.BookingService;
 import com.easyq.common.model.Appointment;
 import com.easyq.common.model.Service;
+import com.easyq.notification.service.NotificationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,6 +30,9 @@ public class BookingController {
     @Autowired
     private com.easyq.admin.repository.UserRepository userRepository;
     
+    @Autowired
+    private NotificationService notificationService;
+    
     @GetMapping
     public String bookingPage(Model model) {
         List<Service> services = serviceRepository.findByIsActive(true);
@@ -38,9 +42,7 @@ public class BookingController {
     }
     
     @GetMapping("/my-appointments")
-    public String myAppointments(Model model) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+    public String myAppointments(@RequestParam Long userId, Model model) {
         List<Appointment> appointments = bookingService.getUserAppointments(userId);
         model.addAttribute("appointments", appointments);
         return "booking/my-appointments";
@@ -57,41 +59,63 @@ public class BookingController {
     
     @PostMapping("/book")
     @ResponseBody
-    public ResponseEntity<BookingResponseDTO> bookAppointment(@RequestBody BookingRequestDTO request) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+    public ResponseEntity<BookingResponseDTO> bookAppointment(@RequestBody BookingRequestDTO request, @RequestParam Long userId) {
         BookingResponseDTO response = bookingService.bookAppointment(request, userId);
+        
+        // Send booking confirmation notification
+        if (response.isSuccess() && response.getId() != null) {
+            try {
+                // Create a mock appointment for notification (in real app, fetch from DB)
+                com.easyq.common.model.Appointment appointment = new com.easyq.common.model.Appointment();
+                appointment.setId(response.getId());
+                appointment.setAppointmentDate(response.getAppointmentDate());
+                appointment.setAppointmentTime(response.getAppointmentTime());
+                appointment.setStatus(response.getStatus());
+                
+                // Create mock service
+                com.easyq.common.model.Service service = new com.easyq.common.model.Service();
+                service.setName(response.getServiceName());
+                appointment.setService(service);
+                
+                // Get user from database
+                com.easyq.common.model.User user = userRepository.findById(userId).orElse(null);
+                if (user != null) {
+                    appointment.setUser(user);
+                }
+                
+                notificationService.sendAppointmentConfirmation(appointment);
+            } catch (Exception e) {
+                System.err.println("Failed to send booking confirmation: " + e.getMessage());
+            }
+        }
+        
         return ResponseEntity.ok(response);
     }
     
     @PutMapping("/{id}")
     @ResponseBody
-    public ResponseEntity<BookingResponseDTO> updateAppointment(@PathVariable Long id, @RequestBody BookingRequestDTO request) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+    public ResponseEntity<BookingResponseDTO> updateAppointment(@PathVariable Long id, @RequestBody BookingRequestDTO request, @RequestParam Long userId) {
         BookingResponseDTO response = bookingService.updateAppointment(id, request, userId);
         return ResponseEntity.ok(response);
     }
     
     @DeleteMapping("/{id}")
     @ResponseBody
-    public ResponseEntity<BookingResponseDTO> cancelAppointment(@PathVariable Long id) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+    public ResponseEntity<BookingResponseDTO> cancelAppointment(@PathVariable Long id, @RequestParam Long userId) {
         BookingResponseDTO response = bookingService.cancelAppointment(id, userId);
         return ResponseEntity.ok(response);
     }
     
     @GetMapping("/api/appointments")
     @ResponseBody
-    public ResponseEntity<List<Appointment>> getAppointments(@RequestParam(required = false) LocalDate date) {
+    public ResponseEntity<List<Appointment>> getAppointments(@RequestParam(required = false) LocalDate date, @RequestParam(required = false) Long userId) {
         List<Appointment> appointments;
         if (date != null) {
             appointments = bookingService.getAppointmentsByDate(date);
-        } else {
-            // For demo purposes, using user ID 4 (customer1)
-            Long userId = 4L;
+        } else if (userId != null) {
             appointments = bookingService.getUserAppointments(userId);
+        } else {
+            appointments = List.of();
         }
         return ResponseEntity.ok(appointments);
     }

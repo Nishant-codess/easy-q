@@ -24,4 +24,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     
     @Query("SELECT n FROM Notification n WHERE n.user = :user AND n.isSent = false ORDER BY n.createdAt DESC")
     List<Notification> findUnsentNotificationsByUser(@Param("user") User user);
+    
+    @Query("SELECT n FROM Notification n WHERE n.user = :user AND n.type = :type AND n.createdAt > :since")
+    List<Notification> findByUserAndTypeAndCreatedAtAfter(@Param("user") User user, 
+                                                         @Param("type") Notification.NotificationType type, 
+                                                         @Param("since") LocalDateTime since);
 }

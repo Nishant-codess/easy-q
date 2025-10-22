@@ -6,11 +6,16 @@ import com.easyq.common.model.Notification;
 import com.easyq.common.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+// SMS imports removed - using Gmail only
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,25 +29,30 @@ public class NotificationService {
     
     @Autowired
     private com.easyq.admin.repository.UserRepository userRepository;
+
+    @Autowired(required = false)
+    private JavaMailSender mailSender;
+    
+    @Autowired(required = false)
+    private SimpMessagingTemplate messagingTemplate;
     
     // TODO: Configure these properties in application.properties
-    @Value("${notification.twilio.account-sid:}")
-    private String twilioAccountSid;
+    // SMS configuration removed - using Gmail only
     
-    @Value("${notification.twilio.auth-token:}")
-    private String twilioAuthToken;
+    @Value("${notification.email.enabled:true}")
+    private boolean emailEnabled;
     
-    @Value("${notification.twilio.phone-number:}")
-    private String twilioPhoneNumber;
+    @Value("${notification.sms.enabled:false}")
+    private boolean smsEnabled;
     
-    @Value("${notification.smtp.host:}")
-    private String smtpHost;
+    @Value("${notification.retry.max-attempts:3}")
+    private int maxRetryAttempts;
+    
+    @Value("${notification.retry.delay-minutes:5}")
+    private int retryDelayMinutes;
     
     @Value("${notification.smtp.username:}")
     private String smtpUsername;
-    
-    @Value("${notification.smtp.password:}")
-    private String smtpPassword;
     
     public Notification createNotification(User user, Notification.NotificationType type, String title, String message) {
         Notification notification = new Notification(user, type, title, message);
@@ -52,28 +62,52 @@ public class NotificationService {
     @Async
     public void sendNotification(Notification notification) {
         try {
-            // TODO: Implement actual notification sending logic
-            // For now, just log the notification
-            System.out.println("Sending notification to " + notification.getUser().getEmail() + 
-                             ": " + notification.getTitle() + " - " + notification.getMessage());
+            // Fetch the user with all required fields to avoid LazyInitializationException
+            User user = userRepository.findById(notification.getUser().getId()).orElse(null);
+            if (user == null) {
+                System.err.println("[Notification] User not found for notification ID: " + notification.getId());
+                return;
+            }
             
-            // Mark as sent
-            notification.setIsSent(true);
-            notification.setSentAt(LocalDateTime.now());
-            notificationRepository.save(notification);
+            boolean emailSent = false;
+            boolean smsSent = false;
             
-            // TODO: Implement Twilio SMS sending
-            // if (notification.getType() == Notification.NotificationType.QUEUE_CALLED) {
-            //     sendSMS(notification);
-            // }
+            // Send via configured channels
+            if (emailEnabled && user.getEmail() != null) {
+                emailSent = sendEmail(notification, user);
+            }
+            if (smsEnabled && user.getPhone() != null) {
+                smsSent = sendSMS(notification, user);
+            }
             
-            // TODO: Implement SMTP email sending
-            // if (notification.getType() == Notification.NotificationType.APPOINTMENT_REMINDER) {
-            //     sendEmail(notification);
-            // }
+            if (!emailEnabled && !smsEnabled) {
+                System.out.println("[Notification] No channels enabled; skipping send. Title=" + notification.getTitle());
+            }
+            
+            // Mark as sent if at least one channel succeeded
+            if (emailSent || smsSent || (!emailEnabled && !smsEnabled)) {
+                notification.setIsSent(true);
+                notification.setSentAt(LocalDateTime.now());
+                notificationRepository.save(notification);
+                System.out.println("[Notification] Sent successfully. Email=" + emailSent + ", SMS=" + smsSent);
+                
+                // Broadcast via WebSocket if available
+                if (messagingTemplate != null) {
+                    try {
+                        NotificationDTO notificationDTO = new NotificationDTO(notification);
+                        messagingTemplate.convertAndSend("/topic/notifications", notificationDTO);
+                        System.out.println("[WebSocket] Broadcasted notification: " + notification.getId());
+                    } catch (Exception e) {
+                        System.err.println("[WebSocket] Failed to broadcast notification: " + e.getMessage());
+                    }
+                }
+            } else {
+                System.err.println("[Notification] Failed to send via any channel. ID=" + notification.getId());
+            }
             
         } catch (Exception e) {
             System.err.println("Failed to send notification: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -123,15 +157,21 @@ public class NotificationService {
     }
     
     public List<NotificationDTO> getUserNotifications(Long userId) {
-        Optional<User> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                System.out.println("User with ID " + userId + " not found");
+                return List.of();
+            }
+            
+            List<Notification> notifications = notificationRepository.findByUser(userOpt.get());
+            return notifications.stream()
+                    .map(NotificationDTO::new)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            System.err.println("Error getting user notifications: " + e.getMessage());
             return List.of();
         }
-        
-        List<Notification> notifications = notificationRepository.findByUser(userOpt.get());
-        return notifications.stream()
-                .map(NotificationDTO::new)
-                .collect(Collectors.toList());
     }
     
     public List<NotificationDTO> getUnsentNotifications() {
@@ -141,17 +181,63 @@ public class NotificationService {
                 .collect(Collectors.toList());
     }
     
-    // TODO: Implement actual SMS sending with Twilio
-    private void sendSMS(Notification notification) {
-        // Twilio SMS implementation would go here
-        System.out.println("SMS would be sent to " + notification.getUser().getPhone() + 
-                         ": " + notification.getMessage());
+    public List<com.easyq.common.model.QueueEntry> getActiveQueueEntries() {
+        // This would typically query the queue repository
+        // For now, return empty list as placeholder
+        return List.of();
     }
     
-    // TODO: Implement actual email sending with SMTP
-    private void sendEmail(Notification notification) {
-        // SMTP email implementation would go here
-        System.out.println("Email would be sent to " + notification.getUser().getEmail() + 
-                         ": " + notification.getTitle() + " - " + notification.getMessage());
+    public boolean hasRecentReminder(User user, Notification.NotificationType type, LocalDateTime since) {
+        List<Notification> recentNotifications = notificationRepository
+            .findByUserAndTypeAndCreatedAtAfter(user, type, since);
+        return !recentNotifications.isEmpty();
+    }
+    
+    private boolean sendSMS(Notification notification, User user) {
+        // SMS disabled - using Gmail only
+        System.out.println("[SMS] SMS disabled; using Gmail only.");
+        return false;
+    }
+    
+    private boolean sendEmail(Notification notification, User user) {
+        try {
+            if (!emailEnabled) {
+                System.out.println("[Email] Email disabled; skipping.");
+                return false;
+            }
+            
+            if (mailSender == null) {
+                System.err.println("[Email] JavaMailSender not configured; cannot send email.");
+                return false;
+            }
+            
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(user.getEmail());
+            message.setFrom(smtpUsername != null ? smtpUsername : "no-reply@easyq.local");
+            message.setSubject(notification.getTitle());
+            message.setText(notification.getMessage());
+            
+            mailSender.send(message);
+            System.out.println("[Email] Sent to=" + user.getEmail());
+            return true;
+            
+        } catch (Exception ex) {
+            System.err.println("[Email] Failed to send to " + user.getEmail() + 
+                             ": " + ex.getMessage());
+            return false;
+        }
+    }
+    
+    public List<NotificationDTO> getRecentNotifications(int limit) {
+        return notificationRepository.findAll()
+            .stream()
+            .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+            .limit(limit)
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+    }
+    
+    private NotificationDTO convertToDTO(Notification notification) {
+        return new NotificationDTO(notification);
     }
 }
