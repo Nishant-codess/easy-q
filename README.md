@@ -343,3 +343,5 @@ For support and questions:
 ---
 
 **Built with ❤️ using Spring Boot 3.x and modern web technologies**
+#   e a s y - q  
+ 
