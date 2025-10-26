@@ -1,6 +1,6 @@
 # Easy-Q: Digital Queue & Appointment Manager
 
-A production-ready Spring Boot 3.x application for managing digital queues and appointments with real-time updates, analytics, and a modern web interface.
+A comprehensive Spring Boot 3.x application for managing digital queues and appointments with real-time updates, analytics, and a modern web interface.
 
 ## 🚀 Features
 
@@ -24,29 +24,28 @@ A production-ready Spring Boot 3.x application for managing digital queues and a
 ### Project Structure
 ```
 easy-q/
-├── src/main/java/com/easyq/
-│   ├── common/           # Shared models and configuration
-│   ├── admin/            # Complete admin implementation
-│   ├── booking/          # Appointment booking system
-│   ├── queue/            # Queue management system
-│   └── notification/     # Notification system
-├── src/main/resources/
-│   ├── templates/        # Thymeleaf templates
-│   ├── static/          # CSS, JS, and static assets
-│   └── application.properties
+├── backend/
+│   └── src/main/java/com/easyq/
+│       ├── common/           # Shared models and configuration
+│       ├── admin/            # Complete admin implementation
+│       ├── booking/          # Appointment booking (starter)
+│       ├── queue/            # Queue management (starter)
+│       └── notification/     # Notifications (starter)
 ├── database/
-│   └── schema.sql       # Database schema
+│   └── schema.sql           # MySQL schema with seed data
+├── .github/workflows/
+│   └── maven.yml           # CI/CD pipeline
 └── README.md
 ```
 
 ### Technology Stack
 - **Backend**: Spring Boot 3.2.0, Java 17+
-- **Database**: H2 (development), PostgreSQL (production)
+- **Database**: MySQL 8.0
 - **Frontend**: Thymeleaf, Bootstrap 5, Chart.js
 - **Real-time**: WebSocket with STOMP
 - **Security**: Spring Security
 - **Build**: Maven
-- **Email**: Spring Mail with SMTP support
+- **CI/CD**: GitHub Actions
 
 ## 🛠️ Setup & Installation
 
