@@ -19,7 +19,7 @@ public class QueueEntryDTO {
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
     
-    // Constructors
+    // Constructors it is automatically callled when ontroller request the serive so this constructor is called that savesd all the imformattion about the user
     public QueueEntryDTO() {}
     
     public QueueEntryDTO(QueueEntry queueEntry) {

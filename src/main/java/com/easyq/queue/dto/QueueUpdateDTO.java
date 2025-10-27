@@ -1,5 +1,5 @@
 package com.easyq.queue.dto;
-
+// this is used to update the imformation for example like called ke liye , yaa in progress basically to update the changes
 import com.easyq.common.model.QueueEntry;
 
 public class QueueUpdateDTO {
@@ -12,13 +12,13 @@ public class QueueUpdateDTO {
     // Constructors
     public QueueUpdateDTO() {}
     
-    public QueueUpdateDTO(String type, QueueEntryDTO queueEntry, String message) {
+    public QueueUpdateDTO(String type, QueueEntryDTO queueEntry, String message) { //this is without the service id, i have kept if there is no specific service id user demand imformation for the queue or etc
         this.type = type;
         this.queueEntry = queueEntry;
         this.message = message;
     }
     
-    public QueueUpdateDTO(String type, QueueEntryDTO queueEntry, String message, Long serviceId) {
+    public QueueUpdateDTO(String type, QueueEntryDTO queueEntry, String message, Long serviceId) { // when there is specific servive id like billing etc
         this.type = type;
         this.queueEntry = queueEntry;
         this.message = message;
