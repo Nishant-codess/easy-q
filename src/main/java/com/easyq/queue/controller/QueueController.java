@@ -8,12 +8,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 @Controller
 @RequestMapping("/queue")
 public class QueueController {
+    private static final Logger log = LoggerFactory.getLogger(QueueController.class);
     
     @Autowired
     private QueueService queueService;
@@ -24,13 +27,20 @@ public class QueueController {
     @GetMapping
     public String queuePage(Model model) {
         List<Service> services = serviceRepository.findByIsActive(true);
+        if (services.isEmpty()) {
+            // Seed minimal demo services for queue only (dev convenience)
+            Service s1 = new Service("General Consultation", "", 30, null);
+            Service s2 = new Service("Billing Support", "", 20, null);
+            Service s3 = new Service("Technical Support", "", 25, null);
+            serviceRepository.saveAll(java.util.Arrays.asList(s1, s2, s3));
+            services = serviceRepository.findByIsActive(true);
+        }
         model.addAttribute("services", services);
         return "queue/queue";
     }
     
     @GetMapping("/my-queue")
     public String myQueue(Model model) {
-        // For demo purposes, using user ID 4 (customer1)
         Long userId = 4L;
         List<QueueEntryDTO> queueEntries = queueService.getUserQueueEntries(userId);
         model.addAttribute("queueEntries", queueEntries);
@@ -41,18 +51,18 @@ public class QueueController {
     public String queueDisplay(Model model) {
         List<QueueEntryDTO> queueEntries = queueService.getQueueEntries(null);
         model.addAttribute("queueEntries", queueEntries);
-        return "queue/display";
+        return "queue/queue";
     }
     
     @PostMapping("/join")
     @ResponseBody
     public ResponseEntity<QueueEntryDTO> joinQueue(@RequestParam Long serviceId) {
         try {
-            // For demo purposes, using user ID 4 (customer1)
-            Long userId = 4L;
+            Long userId = null; // let service layer resolve/create demo user for local testing
             QueueEntryDTO queueEntry = queueService.joinQueue(userId, serviceId);
             return ResponseEntity.ok(queueEntry);
         } catch (Exception e) {
+            log.error("Failed to join queue for serviceId={}", serviceId, e);
             return ResponseEntity.badRequest().build();
         }
     }
@@ -96,6 +106,8 @@ public class QueueController {
         List<QueueEntryDTO> queueEntries = queueService.getQueueEntries(serviceId);
         return ResponseEntity.ok(queueEntries);
     }
+
+    // (Kept minimal; removed extra debug endpoints to keep code simple)
     
     @GetMapping("/api/user-entries")
     @ResponseBody
@@ -104,5 +116,29 @@ public class QueueController {
         Long userId = 4L;
         List<QueueEntryDTO> queueEntries = queueService.getUserQueueEntries(userId);
         return ResponseEntity.ok(queueEntries);
+    }
+    
+    // Admin Queue Management Page
+    @GetMapping("/admin")
+    public String adminQueuePage(Model model) {
+        List<Service> services = serviceRepository.findByIsActive(true);
+        model.addAttribute("services", services);
+        
+        List<QueueEntryDTO> queueEntries = queueService.getQueueEntries(null);
+        model.addAttribute("queueEntries", queueEntries);
+        
+        return "admin/queue-management";
+    }
+    
+    // Remove queue entry
+    @PostMapping("/remove/{id}")
+    @ResponseBody
+    public ResponseEntity<String> removeQueueEntry(@PathVariable Long id) {
+        try {
+            queueService.removeQueueEntry(id);
+            return ResponseEntity.ok("Queue entry removed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
     }
 }

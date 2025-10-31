@@ -121,3 +121,10 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+# Zsh/bash history (safety)
+.zsh_history
+.bash_history

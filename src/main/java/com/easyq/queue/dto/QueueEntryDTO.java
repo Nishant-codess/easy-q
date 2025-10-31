@@ -12,12 +12,14 @@ public class QueueEntryDTO {
     private Integer queueNumber;
     private QueueEntry.QueueStatus status;
     private Integer estimatedWaitTime;
+    private Integer peopleAhead;
+    private Integer averageWaitTime;
     private LocalDateTime calledAt;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
     
-    // Constructors
+    // Constructors it is automatically callled when ontroller request the serive so this constructor is called that savesd all the imformattion about the user
     public QueueEntryDTO() {}
     
     public QueueEntryDTO(QueueEntry queueEntry) {
@@ -80,6 +82,22 @@ public class QueueEntryDTO {
     
     public void setEstimatedWaitTime(Integer estimatedWaitTime) {
         this.estimatedWaitTime = estimatedWaitTime;
+    }
+    
+    public Integer getPeopleAhead() {
+        return peopleAhead;
+    }
+    
+    public void setPeopleAhead(Integer peopleAhead) {
+        this.peopleAhead = peopleAhead;
+    }
+    
+    public Integer getAverageWaitTime() {
+        return averageWaitTime;
+    }
+    
+    public void setAverageWaitTime(Integer averageWaitTime) {
+        this.averageWaitTime = averageWaitTime;
     }
     
     public LocalDateTime getCalledAt() {
