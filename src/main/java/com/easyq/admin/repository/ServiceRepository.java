@@ -12,6 +12,8 @@ public interface ServiceRepository extends JpaRepository<Service, Long> {
     
     List<Service> findByIsActive(Boolean isActive);
     
+    Service findByName(String name);
+    
     @Query("SELECT COUNT(s) FROM Service s WHERE s.isActive = true")
     Long countActiveServices();
 }

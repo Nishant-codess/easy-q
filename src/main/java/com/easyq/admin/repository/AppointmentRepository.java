@@ -20,6 +20,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     
     List<Appointment> findByAppointmentDate(LocalDate date);
     
+    // Filter by service name (e.g., "Dental Checkup")
+    List<Appointment> findByService_Name(String name);
+    
     @Query("SELECT a FROM Appointment a WHERE a.appointmentDate >= :startDate AND a.appointmentDate <= :endDate")
     List<Appointment> findAppointmentsBetweenDates(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
     

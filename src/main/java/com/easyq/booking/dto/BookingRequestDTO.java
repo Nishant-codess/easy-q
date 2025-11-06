@@ -20,6 +20,8 @@ public class BookingRequestDTO {
     
     private String notes;
     
+    private String patientName;
+    
     // Constructors
     public BookingRequestDTO() {}
     
@@ -61,5 +63,13 @@ public class BookingRequestDTO {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public String getPatientName() {
+        return patientName;
+    }
+    
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
 }

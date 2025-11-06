@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Appointments - Easy-Q</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/"><i class="fas fa-clock me-2"></i>Easy-Q</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/booking"><i class="fas fa-calendar-plus me-1"></i>Book</a>
+            <a class="nav-link" href="/queue"><i class="fas fa-list-ol me-1"></i>Queue</a>
+            <a class="nav-link" href="/admin"><i class="fas fa-cog me-1"></i>Admin</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12 text-center">
+            <h1 class="display-6 text-primary"><i class="fas fa-calendar-check me-2"></i>My Appointments</h1>
+        </div>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Service</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="a : ${appointments}">
+                        <td th:text="${a.service.name}">Service</td>
+                        <td th:text="${a.appointmentDate}">2024-01-01</td>
+                        <td th:text="${#strings.substring(a.appointmentTime.toString(),0,5)}">09:00</td>
+                        <td>
+                            <span class="badge bg-warning" th:text="${a.status}">SCHEDULED</span>
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary me-2" th:attr="data-id=${a.id}"
+                                    onclick="openRescheduleModal(this)">
+                                <i class="fas fa-clock me-1"></i>Reschedule
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" th:attr="data-id=${a.id}"
+                                    onclick="cancelAppointment(this)">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(appointments)}">
+                        <td colspan="5" class="text-center text-muted py-4">No appointments yet.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reschedule Modal -->
+<div class="modal fade" id="rescheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fas fa-clock me-2"></i>Reschedule Appointment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rescheduleForm">
+                    <input type="hidden" id="rescheduleAppointmentId">
+                    <div class="mb-3">
+                        <label class="form-label">Service</label>
+                        <select class="form-select" id="rescheduleServiceId">
+                            <option value="">Choose a service...</option>
+                            <option th:each="s : ${services}"
+                                    th:value="${s.id}"
+                                    th:text="${s.name + ' - $' + s.price + ' (' + s.durationMinutes + ' min)'}">
+                                Service
+                            </option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date</label>
+                        <input type="date" class="form-control" id="rescheduleDate">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time</label>
+                        <select class="form-select" id="rescheduleTime">
+                            <option value="">Select time...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-control" id="rescheduleNotes" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="submitReschedule()">Save changes</button>
+            </div>
+        </div>
+    </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let servicesCache = [];
+
+    function ensureServicesLoaded() {
+        if (servicesCache.length) return Promise.resolve(servicesCache);
+        return fetch('/booking')
+            .then(() => fetch('/booking/api/appointments'))
+            .then(() => fetch('/'))
+            .then(() => []);
+    }
+
+    function openRescheduleModal(btn) {
+        const id = btn.getAttribute('data-id');
+        document.getElementById('rescheduleAppointmentId').value = id;
+        const modal = new bootstrap.Modal(document.getElementById('rescheduleModal'));
+        modal.show();
+    }
+
+    document.getElementById('rescheduleDate').addEventListener('change', loadRescheduleSlots);
+    document.getElementById('rescheduleServiceId').addEventListener('change', loadRescheduleSlots);
+
+    function loadRescheduleSlots() {
+        const date = document.getElementById('rescheduleDate').value;
+        const serviceId = document.getElementById('rescheduleServiceId').value;
+        const timeSelect = document.getElementById('rescheduleTime');
+        if (date && serviceId) {
+            fetch(`/booking/api/available-slots?date=${date}&serviceId=${serviceId}`)
+                .then(r => r.json())
+                .then(slots => {
+                    timeSelect.innerHTML = '<option value="">Select time...</option>';
+                    slots.forEach(s => {
+                        const o = document.createElement('option');
+                        o.value = s; o.textContent = s; timeSelect.appendChild(o);
+                    });
+                });
+        }
+    }
+
+    function submitReschedule() {
+        const id = document.getElementById('rescheduleAppointmentId').value;
+        const body = {
+            serviceId: parseInt(document.getElementById('rescheduleServiceId').value),
+            appointmentDate: document.getElementById('rescheduleDate').value,
+            appointmentTime: document.getElementById('rescheduleTime').value,
+            notes: document.getElementById('rescheduleNotes').value
+        };
+        fetch(`/booking/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) location.reload(); else alert(res.message);
+            });
+    }
+
+    function cancelAppointment(btn) {
+        const id = btn.getAttribute('data-id');
+        if (!confirm('Cancel this appointment?')) return;
+        fetch(`/booking/${id}`, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) location.reload(); else alert(res.message);
+            });
+    }
+
+    // Minimum date today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('rescheduleDate').min = today;
+</script>
+</body>
+</html>
+
+

@@ -104,6 +104,14 @@
                                           placeholder="Any special requirements or notes..."></textarea>
                             </div>
 
+                            <!-- Patient Name -->
+                            <div class="mb-4">
+                                <label for="patientName" class="form-label fw-bold">
+                                    <i class="fas fa-user me-2"></i>Patient Name
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="patientName" name="patientName" placeholder="Enter patient full name" required>
+                            </div>
+
                             <!-- Submit Button -->
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary btn-lg">
@@ -246,7 +254,8 @@
                 serviceId: parseInt(formData.get('serviceId')),
                 appointmentDate: formData.get('appointmentDate'),
                 appointmentTime: formData.get('appointmentTime'),
-                notes: formData.get('notes')
+                notes: formData.get('notes'),
+                patientName: formData.get('patientName')
             };
             
             fetch('/booking/book', {

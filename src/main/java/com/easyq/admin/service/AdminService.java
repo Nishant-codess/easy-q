@@ -148,6 +148,10 @@ public class AdminService {
         return appointmentRepository.findAll();
     }
     
+    public List<Appointment> getDentalAppointments() {
+        return appointmentRepository.findByService_Name("Dental Checkup");
+    }
+    
     public List<QueueEntry> getAllQueueEntries() {
         return queueEntryRepository.findAll();
     }

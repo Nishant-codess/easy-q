@@ -11,8 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Transactional
@@ -26,6 +29,9 @@ public class BookingService {
     
     @Autowired
     private com.easyq.admin.repository.UserRepository userRepository;
+    
+    @Autowired
+    private com.easyq.queue.service.QueueService queueService;
     
     public BookingResponseDTO bookAppointment(BookingRequestDTO request, Long userId) {
         try {
@@ -55,9 +61,15 @@ public class BookingService {
             appointment.setAppointmentDate(request.getAppointmentDate());
             appointment.setAppointmentTime(request.getAppointmentTime());
             appointment.setNotes(request.getNotes());
+            appointment.setPatientName(request.getPatientName());
             appointment.setStatus(Appointment.AppointmentStatus.SCHEDULED);
             
             Appointment savedAppointment = appointmentRepository.save(appointment);
+            
+            // Auto-queue dental checkup appointments
+            if ("Dental Checkup".equalsIgnoreCase(serviceOpt.get().getName())) {
+                queueService.joinQueue(userOpt.get().getId(), serviceOpt.get().getId());
+            }
             
             // TODO: Send confirmation notification
             // notificationService.sendAppointmentConfirmation(savedAppointment);
@@ -156,5 +168,31 @@ public class BookingService {
         } catch (Exception e) {
             return new BookingResponseDTO(false, "Failed to update appointment: " + e.getMessage());
         }
+    }
+
+    public List<String> getAvailableSlots(LocalDate date, Long serviceId) {
+        // Determine slot length from service duration; default to 30 minutes
+        int slotMinutes = serviceRepository.findById(serviceId)
+            .map(s -> s.getDurationMinutes() != null ? s.getDurationMinutes() : 30)
+            .orElse(30);
+
+        // Define working hours (09:00 to 17:00)
+        LocalTime start = LocalTime.of(9, 0);
+        LocalTime end = LocalTime.of(17, 0);
+
+        // Collect already booked times for that day
+        List<com.easyq.common.model.Appointment> dayAppointments = appointmentRepository.findByAppointmentDate(date);
+        Set<LocalTime> bookedTimes = new HashSet<>();
+        for (Appointment appt : dayAppointments) {
+            bookedTimes.add(appt.getAppointmentTime());
+        }
+
+        List<String> slots = new ArrayList<>();
+        for (LocalTime t = start; !t.plusMinutes(slotMinutes).isAfter(end); t = t.plusMinutes(slotMinutes)) {
+            if (!bookedTimes.contains(t)) {
+                slots.add(t.toString().substring(0,5));
+            }
+        }
+        return slots;
     }
 }

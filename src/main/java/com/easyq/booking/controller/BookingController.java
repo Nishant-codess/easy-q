@@ -7,8 +7,7 @@ import com.easyq.common.model.Appointment;
 import com.easyq.common.model.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import com.easyq.common.model.User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -39,27 +38,27 @@ public class BookingController {
     
     @GetMapping("/my-appointments")
     public String myAppointments(Model model) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+        Long userId = getOrCreateDemoUserId();
         List<Appointment> appointments = bookingService.getUserAppointments(userId);
         model.addAttribute("appointments", appointments);
+        List<Service> services = serviceRepository.findByIsActive(true);
+        model.addAttribute("services", services);
         return "booking/my-appointments";
     }
     
     @GetMapping("/calendar")
-    public String calendar(Model model) {
-        LocalDate today = LocalDate.now();
-        List<Appointment> todayAppointments = bookingService.getAppointmentsByDate(today);
-        model.addAttribute("appointments", todayAppointments);
-        model.addAttribute("selectedDate", today);
+    public String calendar(Model model, @RequestParam(required = false) LocalDate date) {
+        LocalDate target = (date != null) ? date : LocalDate.now();
+        List<Appointment> dayAppointments = bookingService.getAppointmentsByDate(target);
+        model.addAttribute("appointments", dayAppointments);
+        model.addAttribute("selectedDate", target);
         return "booking/calendar";
     }
     
     @PostMapping("/book")
     @ResponseBody
     public ResponseEntity<BookingResponseDTO> bookAppointment(@RequestBody BookingRequestDTO request) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+        Long userId = getOrCreateDemoUserId();
         BookingResponseDTO response = bookingService.bookAppointment(request, userId);
         return ResponseEntity.ok(response);
     }
@@ -67,8 +66,7 @@ public class BookingController {
     @PutMapping("/{id}")
     @ResponseBody
     public ResponseEntity<BookingResponseDTO> updateAppointment(@PathVariable Long id, @RequestBody BookingRequestDTO request) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+        Long userId = getOrCreateDemoUserId();
         BookingResponseDTO response = bookingService.updateAppointment(id, request, userId);
         return ResponseEntity.ok(response);
     }
@@ -76,8 +74,7 @@ public class BookingController {
     @DeleteMapping("/{id}")
     @ResponseBody
     public ResponseEntity<BookingResponseDTO> cancelAppointment(@PathVariable Long id) {
-        // For demo purposes, using user ID 4 (customer1)
-        Long userId = 4L;
+        Long userId = getOrCreateDemoUserId();
         BookingResponseDTO response = bookingService.cancelAppointment(id, userId);
         return ResponseEntity.ok(response);
     }
@@ -89,8 +86,7 @@ public class BookingController {
         if (date != null) {
             appointments = bookingService.getAppointmentsByDate(date);
         } else {
-            // For demo purposes, using user ID 4 (customer1)
-            Long userId = 4L;
+            Long userId = getOrCreateDemoUserId();
             appointments = bookingService.getUserAppointments(userId);
         }
         return ResponseEntity.ok(appointments);
@@ -99,12 +95,18 @@ public class BookingController {
     @GetMapping("/api/available-slots")
     @ResponseBody
     public ResponseEntity<List<String>> getAvailableSlots(@RequestParam LocalDate date, @RequestParam Long serviceId) {
-        // TODO: Implement logic to get available time slots for a specific date and service
-        // This is a placeholder implementation
-        List<String> availableSlots = List.of(
-            "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-            "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"
-        );
+        List<String> availableSlots = bookingService.getAvailableSlots(date, serviceId);
         return ResponseEntity.ok(availableSlots);
+    }
+
+    private Long getOrCreateDemoUserId() {
+        List<User> customers = userRepository.findByRole(User.Role.CUSTOMER);
+        if (!customers.isEmpty()) {
+            return customers.get(0).getId();
+        }
+        User demo = new User("demo_customer", "demo.customer@example.com", "password", "Demo", "Customer");
+        demo.setRole(User.Role.CUSTOMER);
+        demo.setIsActive(true);
+        return userRepository.save(demo).getId();
     }
 }

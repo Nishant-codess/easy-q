@@ -38,6 +38,9 @@ public class Appointment {
     @Column(columnDefinition = "TEXT")
     private String notes;
     
+    @Column(name = "patient_name")
+    private String patientName;
+    
     @Column(name = "created_at")
     private LocalDateTime createdAt;
     
@@ -115,6 +118,14 @@ public class Appointment {
     
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+    
+    public String getPatientName() {
+        return patientName;
+    }
+    
+    public void setPatientName(String patientName) {
+        this.patientName = patientName;
     }
     
     public LocalDateTime getCreatedAt() {

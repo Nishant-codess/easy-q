@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments Calendar - Easy-Q</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/"><i class="fas fa-clock me-2"></i>Easy-Q</a>
+        <div class="navbar-nav ms-auto">
+            <a class="nav-link" href="/booking"><i class="fas fa-calendar-plus me-1"></i>Book</a>
+            <a class="nav-link" href="/booking/my-appointments"><i class="fas fa-calendar-check me-1"></i>My Appointments</a>
+        </div>
+    </div>
+    </nav>
+
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12 d-flex align-items-center justify-content-between">
+            <h1 class="h3 text-primary mb-0"><i class="fas fa-calendar-day me-2"></i>Appointments on <span th:text="${selectedDate}">2024-01-01</span></h1>
+            <div>
+                <input id="datePicker" type="date" class="form-control" style="width: 220px;">
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3" th:if="${!#lists.isEmpty(appointments)}">
+        <div class="col-12">
+            <div class="list-group shadow-sm">
+                <div class="list-group-item list-group-item-action" th:each="a : ${appointments}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1" th:text="${a.service.name}">Service</h5>
+                        <small class="text-muted" th:text="${#strings.substring(a.appointmentTime.toString(),0,5)}">09:00</small>
+                    </div>
+                    <p class="mb-1 text-muted" th:text="${a.user.firstName + ' ' + a.user.lastName}">User</p>
+                    <small class="badge bg-secondary" th:text="${a.status}">SCHEDULED</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" th:if="${#lists.isEmpty(appointments)}">
+        <i class="fas fa-info-circle me-1"></i>No appointments for this date.
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const dp = document.getElementById('datePicker');
+    const initial = document.querySelector('span[th\\:text="${selectedDate}"]')?.textContent || new Date().toISOString().split('T')[0];
+    dp.value = initial;
+    dp.min = new Date().toISOString().split('T')[0];
+    dp.addEventListener('change', () => {
+        window.location.href = `/booking/calendar?date=${dp.value}`;
+    });
+</script>
+</body>
+</html>
+
+
