@@ -49,6 +49,9 @@ public class User implements UserDetails {
     @Size(max = 20)
     private String phone;
     
+    @Column(name = "profile_picture")
+    private String profilePicture; // Path to profile picture file
+    
     @Enumerated(EnumType.STRING)
     private Role role = Role.CUSTOMER;
     
@@ -168,6 +171,14 @@ public class User implements UserDetails {
     
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+    
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+    
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
     }
     
     public Role getRole() {

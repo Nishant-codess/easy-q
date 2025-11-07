@@ -5,6 +5,7 @@ import com.easyq.admin.repository.*;
 import com.easyq.common.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -144,14 +145,17 @@ public class AdminService {
         return serviceRepository.findAll();
     }
     
+    @Transactional(readOnly = true)
     public List<Appointment> getAllAppointments() {
         return appointmentRepository.findAll();
     }
     
+    @Transactional(readOnly = true)
     public List<Appointment> getDentalAppointments() {
         return appointmentRepository.findByService_Name("Dental Checkup");
     }
     
+    @Transactional(readOnly = true)
     public List<QueueEntry> getAllQueueEntries() {
         return queueEntryRepository.findAll();
     }

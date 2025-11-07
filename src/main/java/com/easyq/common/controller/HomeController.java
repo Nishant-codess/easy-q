@@ -1,16 +1,22 @@
 package com.easyq.common.controller;
 
 import com.easyq.admin.repository.ServiceRepository;
+import com.easyq.admin.repository.UserRepository;
 import com.easyq.common.model.Service;
+import com.easyq.common.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Controller
 public class HomeController {
@@ -19,6 +25,9 @@ public class HomeController {
     
     @Autowired
     private ServiceRepository serviceRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
     
     @GetMapping("/")
     public String home(Model model) {
@@ -34,8 +43,35 @@ public class HomeController {
         return "index";
     }
     
+    @GetMapping("/home")
+    public String userHome(Model model) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+            Optional<User> userOpt = userRepository.findByUsername(auth.getName());
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                model.addAttribute("user", user);
+                model.addAttribute("title", "Welcome to Easy-Q");
+                
+                // Get user's appointments and queue entries count
+                try {
+                    List<Service> services = serviceRepository.findByIsActive(true);
+                    model.addAttribute("services", services);
+                } catch (Exception e) {
+                    model.addAttribute("services", new ArrayList<Service>());
+                }
+                
+                return "user-home";
+            }
+        }
+        return "redirect:/login";
+    }
+    
     @GetMapping("/login")
-    public String login() {
+    public String login(@RequestParam(required = false) String error, Model model) {
+        if (error != null) {
+            model.addAttribute("error", "Invalid username or password");
+        }
         return "login";
     }
 }

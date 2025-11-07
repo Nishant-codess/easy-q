@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,13 +11,27 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand fw-bold" href="/">
+            <a class="navbar-brand fw-bold" href="/admin">
                 <i class="fas fa-clock me-2"></i>Easy-Q Admin
             </a>
             <div class="navbar-nav ms-auto">
-                <a class="nav-link" href="/">Home</a>
-                <a class="nav-link" href="/booking">Bookings</a>
-                <a class="nav-link" href="/queue">Queue</a>
+                <a class="nav-link" href="/admin/appointments">
+                    <i class="fas fa-calendar me-1"></i>Appointments
+                </a>
+                <a class="nav-link" href="/admin/queue-management">
+                    <i class="fas fa-list-ol me-1"></i>Queue Management
+                </a>
+                <a class="nav-link" href="/admin/services">
+                    <i class="fas fa-cog me-1"></i>Services
+                </a>
+                <a class="nav-link" href="/admin/users">
+                    <i class="fas fa-users me-1"></i>Users
+                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i>Logout
+                    </button>
+                </form>
             </div>
         </div>
     </nav>
@@ -28,61 +42,150 @@
             <div class="col-12">
                 <h1 class="mb-4"><i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard</h1>
                 
-                <div class="row g-4">
+                <div class="row g-4 mb-4">
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center border-0 shadow-sm">
                             <div class="card-body">
                                 <i class="fas fa-users fa-2x text-primary mb-3"></i>
                                 <h5 class="card-title">Total Users</h5>
-                                <h3 class="text-primary">0</h3>
+                                <h3 class="text-primary" th:text="${stats.totalUsers}">0</h3>
                             </div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center border-0 shadow-sm">
                             <div class="card-body">
                                 <i class="fas fa-calendar fa-2x text-success mb-3"></i>
-                                <h5 class="card-title">Appointments</h5>
-                                <h3 class="text-success">0</h3>
+                                <h5 class="card-title">Total Appointments</h5>
+                                <h3 class="text-success" th:text="${stats.totalAppointments}">0</h3>
+                                <small class="text-muted">Today: <span th:text="${stats.todayAppointments}">0</span></small>
                             </div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center border-0 shadow-sm">
                             <div class="card-body">
                                 <i class="fas fa-list-ol fa-2x text-info mb-3"></i>
                                 <h5 class="card-title">Queue Entries</h5>
-                                <h3 class="text-info">0</h3>
+                                <h3 class="text-info" th:text="${stats.totalQueueEntries}">0</h3>
+                                <small class="text-muted">Waiting: <span th:text="${stats.waitingInQueue}">0</span></small>
                             </div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
-                        <div class="card text-center">
+                        <div class="card text-center border-0 shadow-sm">
                             <div class="card-body">
-                                <i class="fas fa-cog fa-2x text-warning mb-3"></i>
-                                <h5 class="card-title">Services</h5>
-                                <h3 class="text-warning">0</h3>
+                                <i class="fas fa-concierge-bell fa-2x text-warning mb-3"></i>
+                                <h5 class="card-title">Active Services</h5>
+                                <h3 class="text-warning" th:text="${stats.activeServices}">0</h3>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="card mt-4">
+                <!-- Recent Appointments -->
+                <div class="card mb-4 border-0 shadow-sm" th:if="${stats.recentAppointments != null and !stats.recentAppointments.isEmpty()}">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-check me-2"></i>Recent Appointments</h5>
+                    </div>
                     <div class="card-body">
-                        <h5 class="card-title">Admin Panel</h5>
-                        <p class="card-text">This is the admin dashboard. All administrative functions will be available here.</p>
-                        
-                        <div class="alert alert-success">
-                            <i class="fas fa-check-circle me-2"></i>
-                            Admin panel is working! Database is connected and ready.
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Patient</th>
+                                        <th>Service</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="appointment : ${stats.recentAppointments}">
+                                        <td th:text="${appointment.userName}">-</td>
+                                        <td th:text="${appointment.serviceName}">-</td>
+                                        <td th:text="${#temporals.format(appointment.date, 'yyyy-MM-dd')}">-</td>
+                                        <td th:text="${appointment.time}">-</td>
+                                        <td>
+                                            <span class="badge" 
+                                                  th:classappend="${appointment.status == 'COMPLETED'} ? 'bg-success' : 
+                                                                  (${appointment.status == 'CANCELLED'} ? 'bg-danger' : 
+                                                                   (${appointment.status == 'CONFIRMED'} ? 'bg-primary' : 'bg-secondary'))"
+                                                  th:text="${appointment.status}">-</span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        
-                        <a href="/" class="btn btn-primary">
-                            <i class="fas fa-arrow-left me-2"></i>Back to Home
-                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Queue Entries -->
+                <div class="card mb-4 border-0 shadow-sm" th:if="${stats.recentQueueEntries != null and !stats.recentQueueEntries.isEmpty()}">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Active Queue Entries</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Service</th>
+                                        <th>Queue #</th>
+                                        <th>Status</th>
+                                        <th>Wait Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="entry : ${stats.recentQueueEntries}">
+                                        <td th:text="${entry.userName}">-</td>
+                                        <td th:text="${entry.serviceName}">-</td>
+                                        <td><span class="badge bg-primary" th:text="${entry.queueNumber}">-</span></td>
+                                        <td>
+                                            <span class="badge" 
+                                                  th:classappend="${entry.status == 'WAITING'} ? 'bg-warning' : 
+                                                                  (${entry.status == 'CALLED'} ? 'bg-info' : 
+                                                                   (${entry.status == 'IN_PROGRESS'} ? 'bg-primary' : 'bg-success'))"
+                                                  th:text="${entry.status}">-</span>
+                                        </td>
+                                        <td th:text="${entry.estimatedWaitTime != null ? entry.estimatedWaitTime + ' min' : '-'}">-</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <a href="/admin/appointments" class="btn btn-outline-primary w-100">
+                                    <i class="fas fa-calendar me-2"></i>View All Appointments
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a href="/admin/queue-management" class="btn btn-outline-info w-100">
+                                    <i class="fas fa-list-ol me-2"></i>Manage Queue
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a href="/admin/services" class="btn btn-outline-warning w-100">
+                                    <i class="fas fa-cog me-2"></i>Manage Services
+                                </a>
+                            </div>
+                            <div class="col-md-3">
+                                <a href="/admin/users" class="btn btn-outline-secondary w-100">
+                                    <i class="fas fa-users me-2"></i>Manage Users
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

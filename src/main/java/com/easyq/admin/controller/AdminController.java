@@ -5,7 +5,6 @@ import com.easyq.admin.service.AdminService;
 import com.easyq.common.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -20,37 +19,10 @@ public class AdminController {
     private AdminService adminService;
     
     @GetMapping
-    public String dashboard(Model model, HttpSession session) {
-        if (!Boolean.TRUE.equals(session.getAttribute("ADMIN_AUTH"))) {
-            return "redirect:/admin/login";
-        }
+    public String dashboard(Model model) {
         DashboardStatsDTO stats = adminService.getDashboardStats();
         model.addAttribute("stats", stats);
         return "admin/dashboard";
-    }
-
-    @GetMapping("/login")
-    public String loginPage() {
-        return "admin/login";
-    }
-
-    @PostMapping("/login")
-    public String doLogin(@RequestParam String username,
-                          @RequestParam String password,
-                          HttpSession session,
-                          Model model) {
-        if ("clinic_admin".equals(username) && "dental123".equals(password)) {
-            session.setAttribute("ADMIN_AUTH", true);
-            return "redirect:/admin/queue-management";
-        }
-        model.addAttribute("error", "Invalid credentials");
-        return "admin/login";
-    }
-
-    @PostMapping("/logout")
-    public String logout(HttpSession session) {
-        session.invalidate();
-        return "redirect:/admin/login";
     }
     
     @GetMapping("/users")
@@ -68,33 +40,23 @@ public class AdminController {
     }
     
     @GetMapping("/appointments")
-    public String appointments(Model model, HttpSession session) {
-        if (!Boolean.TRUE.equals(session.getAttribute("ADMIN_AUTH"))) {
-            return "redirect:/admin/login";
-        }
-        List<Appointment> appointments = adminService.getDentalAppointments();
+    public String appointments(Model model) {
+        List<Appointment> appointments = adminService.getAllAppointments();
         model.addAttribute("appointments", appointments);
         return "admin/appointments";
     }
     
     @GetMapping("/queue")
-    public String queue(Model model, HttpSession session) {
-        if (!Boolean.TRUE.equals(session.getAttribute("ADMIN_AUTH"))) {
-            return "redirect:/admin/login";
-        }
+    public String queue(Model model) {
         List<QueueEntry> queueEntries = adminService.getAllQueueEntries();
         model.addAttribute("queueEntries", queueEntries);
         return "admin/queue";
     }
 
     @GetMapping("/queue-management")
-    public String queueManagement(Model model, HttpSession session) {
-        if (!Boolean.TRUE.equals(session.getAttribute("ADMIN_AUTH"))) {
-            return "redirect:/admin/login";
-        }
+    public String queueManagement(Model model) {
         List<com.easyq.common.model.Service> services = adminService.getAllServices();
         model.addAttribute("services", services);
-        // Could preload queue entries if needed
         return "admin/queue-management";
     }
     

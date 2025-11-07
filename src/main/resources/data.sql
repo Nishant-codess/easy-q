@@ -1,9 +1,15 @@
 -- Seed data for Easy-Q (H2 in-memory)
 -- Services shown in the booking dropdown
 
--- Demo customer user (used automatically by booking without auth)
+-- Admin user (password: password)
+-- BCrypt hash for "password"
 INSERT INTO users (username, email, password, first_name, last_name, role, is_active) VALUES
-  ('demo_customer', 'demo.customer@example.com', 'password', 'Demo', 'Customer', 'CUSTOMER', TRUE);
+  ('admin', 'admin@easyq.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'Admin', 'User', 'ADMIN', TRUE);
+
+-- Demo customer user (used automatically by booking without auth)
+-- Password is 'password' (plain text for demo, but should be hashed in production)
+INSERT INTO users (username, email, password, first_name, last_name, role, is_active) VALUES
+  ('demo_customer', 'demo.customer@example.com', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iKTVEFDi', 'Demo', 'Customer', 'CUSTOMER', TRUE);
 
 INSERT INTO services (name, description, duration_minutes, price, is_active) VALUES
   ('General Consultation', 'General health consultation with a physician', 30, 100.00, TRUE),

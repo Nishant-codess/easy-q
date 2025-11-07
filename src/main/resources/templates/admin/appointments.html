@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointments - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="/admin">
+                <i class="fas fa-clock me-2"></i>Easy-Q Admin
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/admin/appointments">
+                    <i class="fas fa-calendar me-1"></i>Appointments
+                </a>
+                <a class="nav-link" href="/admin/queue-management">
+                    <i class="fas fa-list-ol me-1"></i>Queue Management
+                </a>
+                <a class="nav-link" href="/admin/services">
+                    <i class="fas fa-cog me-1"></i>Services
+                </a>
+                <a class="nav-link" href="/admin/users">
+                    <i class="fas fa-users me-1"></i>Users
+                </a>
+                <form th:action="@{/logout}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-sign-out-alt me-1"></i>Logout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container py-5">
+        <div class="row mb-4">
+            <div class="col-12 d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-calendar-check me-2"></i>All Appointments</h1>
+                <a href="/admin" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div th:if="${appointments == null or appointments.isEmpty()}" class="text-center py-5">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Appointments Found</h5>
+                    <p class="text-muted">There are no appointments scheduled yet.</p>
+                </div>
+
+                <div th:if="${appointments != null and !appointments.isEmpty()}" class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Patient</th>
+                                <th>Service</th>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Status</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="appointment : ${appointments}">
+                                <td th:text="${appointment.id}">-</td>
+                                <td th:text="${appointment.user != null ? (appointment.user.firstName + ' ' + appointment.user.lastName) : 'N/A'}">-</td>
+                                <td th:text="${appointment.service != null ? appointment.service.name : 'N/A'}">-</td>
+                                <td th:text="${appointment.appointmentDate != null ? #temporals.format(appointment.appointmentDate, 'yyyy-MM-dd') : '-'}">-</td>
+                                <td th:text="${appointment.appointmentTime != null ? #temporals.format(appointment.appointmentTime, 'HH:mm') : '-'}">-</td>
+                                <td>
+                                    <span class="badge" 
+                                          th:classappend="${appointment.status != null and appointment.status.name() == 'COMPLETED'} ? 'bg-success' : 
+                                                          (${appointment.status != null and appointment.status.name() == 'CANCELLED'} ? 'bg-danger' : 
+                                                           (${appointment.status != null and appointment.status.name() == 'CONFIRMED'} ? 'bg-primary' : 
+                                                            (${appointment.status != null and appointment.status.name() == 'IN_PROGRESS'} ? 'bg-info' : 'bg-secondary')))"
+                                          th:text="${appointment.status != null ? appointment.status : 'N/A'}">-</span>
+                                </td>
+                                <td>
+                                    <span th:if="${appointment.notes != null and !appointment.notes.isEmpty()}" 
+                                          th:text="${#strings.abbreviate(appointment.notes, 30)}" 
+                                          class="text-muted">-</span>
+                                    <span th:unless="${appointment.notes != null and !appointment.notes.isEmpty()}" 
+                                          class="text-muted">-</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
